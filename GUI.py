@@ -1,4 +1,5 @@
 """ 图形界面 """
+import tkinter
 from tkinter import colorchooser, commondialog, scrolledtext, ttk
 
 import tkintertools as tkt
@@ -6,6 +7,7 @@ from constants import *
 from main import __version__
 
 root = tkt.Tk('Python-v%s' % __version__, 1280, 720, 310, 150)
+root.minsize(1280, 720)
 
 
 class Interface:
@@ -28,27 +30,81 @@ class Login(Interface):
     """ 登录界面 """
 
     canvas = tkt.Canvas(root, 1280, 720, lock=False)
-    tkt.CanvasLabel(canvas, 750, 120, 480, 370, 20, color_fill=('white',)*3)
-    button_1 = tkt.CanvasButton(
-        canvas, 770, 140, 160, 50, 10, '密码登录', font=('楷体', 20))
-    button_2 = tkt.CanvasButton(
-        canvas, 950, 140, 160, 50, 10, '验证码登录', font=('楷体', 20))
-    entry_1 = tkt.CanvasEntry(
-        canvas, 770, 210, 440, 50, 10, ('账号或邮箱号', '点击输入'), limit=20)
-    entry_2 = tkt.CanvasEntry(
-        canvas, 770, 280, 440, 50, 10, ('密码或验证码', '点击输入'), limit=16, show='•')
-    tkt.CanvasButton(
-        canvas, 770, 350, 440, 50, 10, '登  录', command=lambda: Login.login())
-    tkt.CanvasButton(
-        canvas, 770, 420, 130, 50, 10, '注册', command=lambda: Login.register())
-    tkt.CanvasButton(
-        canvas, 1050, 420, 160, 50, 10, '离线模式', command=lambda: Login.offline())
-    canvas.create_text(
-        990, 60, text='登录账号', font=('楷体', 40))
+    canvas_widgets: list[tkt._BaseWidget] = []
+    title = canvas.create_text(990, 60, font=('楷体', 40))
     canvas.create_text(
         990, 640, text=DESCRIPTION, justify='center', font=('楷体', 15))
     face_image = tkt.PhotoImage('images/face/face1.png')
     canvas.create_image(340, 360, image=face_image)
+
+    @classmethod
+    def login_page(cls) -> None:
+        """ 登录界面 """
+        cls.canvas.itemconfigure(cls.title, text='登 录')
+        for widget in cls.canvas_widgets:
+            widget.destroy()
+        cls.canvas_widgets = [
+            tkt.CanvasLabel(cls.canvas, 750, 120, 480, 370,
+                            20, color_fill=('white',)*3),
+            tkt.CanvasEntry(cls.canvas, 770, 210, 440, 50,
+                            10, ('账号或邮箱', '点击输入'), limit=20),
+            tkt.CanvasEntry(cls.canvas, 770, 280, 440, 50, 10,
+                            ('密码或验证码', '点击输入'), limit=16, show='•'),
+            tkt.CanvasButton(cls.canvas, 770, 140, 160, 50, 10, '密码登录'),
+            tkt.CanvasButton(cls.canvas, 950, 140, 160, 50, 10, '验证码登录'),
+            tkt.CanvasButton(cls.canvas, 770, 350, 440, 50, 10,
+                             '登  录', command=cls.login),
+            tkt.CanvasButton(cls.canvas, 770, 420, 130, 50, 10,
+                             '注册', command=cls.register_page),
+            tkt.CanvasButton(cls.canvas, 1050, 420, 160, 50, 10, '离线模式', command=cls.offline)]
+
+    @classmethod
+    def register_page(cls) -> None:
+        """ 注册界面 """
+
+        def switch() -> None:
+            """ 开关 """
+            if cls.canvas_widgets[8].value:
+                cls.canvas_widgets[8].configure(text='')
+            else:
+                cls.canvas_widgets[8].configure(text='✓')
+
+        cls.canvas.itemconfigure(cls.title, text='注 册')
+        for widget in cls.canvas_widgets:
+            widget.destroy()
+        cls.canvas_widgets = [
+            tkt.CanvasLabel(cls.canvas, 750, 120, 480, 440,
+                            20, color_fill=('white',)*3),
+            tkt.CanvasEntry(cls.canvas, 770, 140, 440, 50,
+                            10, ('昵称', '点击输入'), limit=10),
+            tkt.CanvasEntry(cls.canvas, 770, 210, 440, 50,
+                            10, ('邮箱', '点击输入'), limit=20),
+            tkt.CanvasEntry(cls.canvas, 770, 280, 250, 50,
+                            10, ('验证码', '点击输入'), limit=6),
+            tkt.CanvasEntry(cls.canvas, 770, 350, 440, 50, 10,
+                            ('密码', '点击输入'), show='•', limit=16),
+            tkt.CanvasButton(cls.canvas, 1040, 280, 170, 50, 10, '发送验证码'),
+            tkt.CanvasButton(cls.canvas, 770, 420, 440, 50, 10, '注 册'),
+            tkt.CanvasButton(cls.canvas, 1050, 490, 160, 50,
+                             10, '返回登录', command=cls.login_page),
+            tkt.CanvasButton(cls.canvas, 770, 500, 30, 30, 5, command=switch),
+            tkt.CanvasButton(cls.canvas, 810, 500, 125, 30, 0, '遵循注册协议', justify='left', font=('楷体', 15),
+                             color_outline=tkt.COLOR_NONE, color_fill=tkt.COLOR_NONE,
+                             color_text=('black', 'orange', 'blue'), command=cls.toplevel)]
+
+    @classmethod
+    def toplevel(cls) -> None:
+        """ 注册协议 """
+        toplevel = tkinter.Toplevel(root)
+        toplevel.title('注册协议')
+        toplevel.geometry('720x500+590+290')
+        toplevel.transient(root)
+        toplevel.focus_set()
+        canvas = tkinter.Canvas(toplevel, width=720, height=500)
+        canvas.create_text(360, 50, text='Python习题测试软件\n注册协议',
+                           font=('楷体', 24), justify='center')
+        canvas.create_text(20, 100, text=CONTENT, anchor='nw', font=('楷体', 15))
+        canvas.pack()
 
     @classmethod
     def register(cls) -> None:
@@ -109,5 +165,7 @@ class Config(Interface):
 if __name__ == '__main__':
     tkt.SetProcessDpiAwareness()
     Login.place(0, 0)
+    Login.login_page()
+    # Login.register_page()
     # Tool.place(0, 0)
     root.mainloop()
