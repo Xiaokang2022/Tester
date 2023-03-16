@@ -13,12 +13,12 @@ class Client:
     def connect(cls) -> None:
         """ 连接 """
         cls.client.connect((ADDRESS, PORT))
-        cls.send(code='CLIENT')
+        cls.send(op='CLIENT')
 
     @classmethod
     def close(cls) -> None:
         """ 断开 """
-        cls.send(code='QUIT')
+        cls.send(op='QUIT')
         cls.client.close()
 
     @classmethod
@@ -31,8 +31,18 @@ class Client:
         """ 接受 """
         return eval(cls.client.recv(4096).decode())
 
+    @classmethod
+    def code(cls, mail: str) -> None:
+        """ 验证码 """
+        cls.send(op='CODE', mail=mail)
+
 
 if __name__ == '__main__':
     Client.connect()
+    print(1)
+    time.sleep(0.1)
+    Client.code('392126563@qq.com')
+    print(2)
     time.sleep(0.1)
     Client.close()
+    print(3)
