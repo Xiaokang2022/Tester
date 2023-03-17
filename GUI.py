@@ -1,6 +1,8 @@
 """ 图形界面 """
+import threading
 import tkinter
 
+import client
 import tkintertools as tkt
 from constants import *
 from main import __version__
@@ -9,22 +11,23 @@ root = tkt.Tk('Questioner-v%s' % __version__, 1280, 720, 310, 150)
 root.minsize(1280, 720)
 
 
-class Warn:
-    """ 警告 """
+class FlyWindow:
+    """ 浮窗 """
 
-    def __init__(self, width: int, height: int, text: str, justify: str = 'center') -> None:
-        self.width = width
-        self.canvas = tkt.Canvas(root, width, height)
-        self.canvas.place(x=1280, y=700-height)
-        tkt.Label(
-            self.canvas, 0, 0, width-1, height-1, text=text, justify=justify)
+    bg_light = tkt.PhotoImage('images/Python_light.png')
+    bg_dark = tkt.PhotoImage('images/Python_dark.png')
+
+    def __init__(self, canvas: tkt.Canvas, text: str) -> None:
+        self.label = tkt.Label(
+            canvas, -305, 10, 300, 120, 10, text=text, image=self.bg_light)
         self.run()
 
     def run(self, key: int = 1) -> None:
-        tkt.move(root, self.canvas, -self.width*key, 0, 300, 'smooth')
+        tkt.move(root, self.label, 315*key *
+                 self.label.master.rx, 0, 500, 'smooth')
         if key == -1:
-            return self.canvas.after(500, self.canvas.destroy)
-        self.canvas.after(2000, self.run, -1)
+            return self.label.master.after(500, self.label.destroy)
+        self.label.master.after(3000, self.run, -1)
 
 
 class Interface:
@@ -49,8 +52,9 @@ class Login(Interface):
     canvas = tkt.Canvas(root, 1280, 720, lock=False)
     canvas_widgets: list[tkt._BaseWidget] = []
     title = canvas.create_text(990, 60, font=('楷体', 40))
+    canvas.create_image(990, 640, image=FlyWindow.bg_light)
     canvas.create_text(
-        990, 640, text=DESCRIPTION, justify='center', font=('楷体', 15))
+        990, 640, text=DESCRIPTION, justify='center', font=('楷体', 16))
     face_image = tkt.PhotoImage('images/face/face1.png')
     canvas.create_image(340, 360, image=face_image)
 
@@ -67,9 +71,10 @@ class Login(Interface):
                       10, ('邮箱', '点击输入'), limit=20),
             tkt.Entry(cls.canvas, 770, 280, 440, 50, 10,
                       ('密码', '点击输入'), limit=16, show='•'),
-            tkt.Button(cls.canvas, 770, 140, 160, 50, 10, '验证码登录', command=cls.login_page_code),
+            tkt.Button(cls.canvas, 770, 140, 160, 50, 10,
+                       '验证码登录', command=cls.login_page_code),
             tkt.Button(cls.canvas, 770, 350, 440, 50, 10,
-                       '登  录', command=cls.login),
+                       '登  录', command=lambda: cls.login('PASSWORD')),
             tkt.Button(cls.canvas, 770, 420, 130, 50, 10,
                        '注册', command=cls.register_page),
             tkt.Button(cls.canvas, 1050, 420, 160, 50, 10, '离线模式', command=cls.offline)]
@@ -88,9 +93,10 @@ class Login(Interface):
             tkt.Entry(cls.canvas, 770, 280, 250, 50, 10,
                       ('验证码', '点击输入'), limit=16, show='•'),
             tkt.Button(cls.canvas, 1040, 280, 170, 50, 10, '获取验证码'),
-            tkt.Button(cls.canvas, 770, 140, 160, 50, 10, '密码登录', command=cls.login_page_psd),
+            tkt.Button(cls.canvas, 770, 140, 160, 50, 10,
+                       '密码登录', command=cls.login_page_psd),
             tkt.Button(cls.canvas, 770, 350, 440, 50, 10,
-                       '登  录', command=cls.login),
+                       '登  录', command=lambda: cls.login('CODE')),
             tkt.Button(cls.canvas, 770, 420, 130, 50, 10,
                        '注册', command=cls.register_page),
             tkt.Button(cls.canvas, 1050, 420, 160, 50, 10, '离线模式', command=cls.offline)]
@@ -120,7 +126,8 @@ class Login(Interface):
                       10, ('验证码', '点击输入'), limit=6),
             tkt.Entry(cls.canvas, 770, 350, 440, 50, 10,
                       ('密码', '点击输入'), show='•', limit=16),
-            tkt.Button(cls.canvas, 1040, 280, 170, 50, 10, '获取验证码'),
+            tkt.Button(cls.canvas, 1040, 280, 170, 50, 10, '获取验证码',
+                       command=lambda: cls.code(cls.canvas_widgets[2].value, 'REGISTER')),
             tkt.Button(cls.canvas, 770, 420, 440, 50,
                        10, '注 册', command=cls.register),
             tkt.Button(cls.canvas, 1050, 490, 160, 50,
@@ -145,31 +152,46 @@ class Login(Interface):
         canvas.pack()
 
     @classmethod
+    def code(cls, mail: str, mode: str) -> None:
+        """ 获取验证码 """
+        if not mail:
+            return FlyWindow(cls.canvas, '请填写邮箱')
+        client.Client.code(mail, mode)
+
+    @classmethod
     def register(cls) -> None:
         """ 注册 """
         if not cls.canvas_widgets[-2].value:
-            return Warn(300, 100, '请勾选注册协议！')
+            return FlyWindow(cls.canvas, '请勾选注册协议')
         if not cls.canvas_widgets[1].value:
-            return Warn(300, 100, '请填写昵称！')
+            return FlyWindow(cls.canvas, '请填写昵称')
         if not cls.canvas_widgets[2].value:
-            return Warn(300, 100, '请填写邮箱！')
+            return FlyWindow(cls.canvas, '请填写邮箱')
         if not cls.canvas_widgets[4].value:
-            return Warn(300, 100, '请填写密码！')
+            return FlyWindow(cls.canvas, '请填写密码')
         if not cls.canvas_widgets[3].value:
-            return Warn(300, 100, '请填写验证码！')
+            return FlyWindow(cls.canvas, '请填写验证码')
+        nickname = cls.canvas_widgets[1].value
+        mail = cls.canvas_widgets[2].value
+        code = cls.canvas_widgets[3].value
+        password = cls.canvas_widgets[4].value
+        client.Client.register(nickname, mail, code, password)
 
     @classmethod
-    def login(cls) -> None:
+    def login(cls, mode: str) -> None:
         """ 登录 """
         if not cls.canvas_widgets[1].value:
-            return Warn(300, 100, '请输入邮箱！')
+            return FlyWindow(cls.canvas, '请输入邮箱')
         if not cls.canvas_widgets[2].value:
-            return Warn(300, 100, '请输入密码！')
+            return FlyWindow(cls.canvas, '请输入密码' if mode == 'PASSWORD' else '请输入验证码')
+        mail = cls.canvas_widgets[1].value
+        password_or_code = cls.canvas_widgets[2].value
+        client.Client.login(mode, mail, password_or_code)
 
     @classmethod
     def offline(cls) -> None:
         """ 离线 """
-        return Warn(300, 100, '离线模式正在开发中…')
+        return FlyWindow(cls.canvas, '离线模式正在开发中')
 
 
 class Tool(Interface):
@@ -215,10 +237,41 @@ class Config(Interface):
     """ 设置 """
 
 
-if __name__ == '__main__':
+class Receiver:
+    """ 接收器 """
+
+    @classmethod
+    def run(cls) -> None:
+        """ 接收 """
+        while True:
+            data = client.Client.recv()
+            match data['op']:
+                case 'REGISTER':
+                    if data['state'] == 'REGISTER_OK':
+                        FlyWindow(Login.canvas, '— 注册成功 —')
+                    elif data['state'] == 'REGISTER_REPEAT':
+                        FlyWindow(Login.canvas, '邮箱重复注册')
+                    elif data['state'] == 'REGISTER_ERROR':
+                        FlyWindow(Login.canvas, '验证码错误')
+                case 'LOGIN':
+                    if data['state'] == 'LOGIN_OK':
+                        FlyWindow(Login.canvas, '— 登录成功 —')
+                    else:
+                        if data['mode'] == 'PASSWORD':
+                            FlyWindow(Login.canvas, '邮箱或密码不正确')
+                        else:
+                            FlyWindow(Login.canvas, '邮箱或验证码不正确')
+
+
+def main() -> None:
+    """ 主函数 """
     tkt.SetProcessDpiAwareness()
     Login.place(0, 0)
     Login.login_page_psd()
-    # Login.register_page()
-    # Tool.place(0, 0)
+    # client.Client.connect()
+    # threading.Thread(target=Receiver.run, daemon=True).start()
     root.mainloop()
+
+
+if __name__ == '__main__':
+    main()

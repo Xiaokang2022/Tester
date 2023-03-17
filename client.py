@@ -1,6 +1,5 @@
 """ 客户端 """
 import socket
-import time
 from constants import *
 
 
@@ -32,17 +31,21 @@ class Client:
         return eval(cls.client.recv(4096).decode())
 
     @classmethod
-    def code(cls, mail: str) -> None:
+    def code(cls, mail: str, mode: str) -> None:
         """ 验证码 """
-        cls.send(op='CODE', mail=mail)
+        cls.send(op='CODE', mode=mode, mail=mail)
 
+    @classmethod
+    def register(cls, nickname: str, mail: str, code: str, password: str) -> None:
+        """ 注册 """
+        cls.send(
+            op='REGISTER', nickname=nickname, mail=mail, code=code.upper(), password=password)
 
-if __name__ == '__main__':
-    Client.connect()
-    print(1)
-    time.sleep(0.1)
-    Client.code('392126563@qq.com')
-    print(2)
-    time.sleep(0.1)
-    Client.close()
-    print(3)
+    @classmethod
+    def login(cls, mode: str, mail: str, password_or_code: str) -> None:
+        """ 登录 """
+        if mode == 'PASSWORD':
+            cls.send(op='LOGIN', mode=mode, mail=mail,
+                     password=password_or_code)
+        else:
+            cls.send(op='LOGIN', mode=mode, mail=mail, code=password_or_code)
